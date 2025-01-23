@@ -5,10 +5,10 @@
 // npx whisper-node download
 
 import shell from 'shelljs';
-
 import readlineSync from 'readline-sync';
-
-import {DEFAULT_MODEL, NODE_MODULES_MODELS_PATH} from './constants'
+import { DEFAULT_MODEL, NODE_MODULES_MODELS_PATH } from './constants';
+import yargs from 'yargs/yargs';
+import { hideBin } from 'yargs/helpers';
 
 const MODELS_LIST = [
   "tiny",
@@ -23,9 +23,8 @@ const MODELS_LIST = [
   "large"
 ];
 
-
 const askModel = async () => {
-  const answer = await readlineSync.question(`\n[whisper-node] Enter model name (e.g. 'base.en') or 'cancel' to exit\n(ENTER for base.en): `)
+  const answer = await readlineSync.question(`\n[whisper-node] Enter model name (e.g. 'base.en') or 'cancel' to exit\n(ENTER for base.en): `);
 
   if (answer === "cancel") {
     console.log("[whisper-node] Exiting model downloader. Run again with: 'npx whisper-node download'");
@@ -46,10 +45,19 @@ const askModel = async () => {
   return answer;
 }
 
-
-
 export default async function downloadModel() {
   try {
+    // Parse command-line arguments
+    const argv = await yargs(hideBin(process.argv)).option('model', {
+      alias: 'm',
+      type: 'string',
+      description: 'Specify the model to download',
+      choices: MODELS_LIST,
+      default: DEFAULT_MODEL
+    }).argv;
+
+    const modelName = argv.model || await askModel();
+
     // shell.exec("echo $PWD");
     shell.cd(NODE_MODULES_MODELS_PATH);
 
@@ -73,12 +81,10 @@ export default async function downloadModel() {
       throw "whisper-node downloader is not being run from the correct path! cd to project root and run again."
     }
 
-    const modelName = await askModel();
-
     // default is .sh
     let scriptPath = "./download-ggml-model.sh"
     // windows .cmd version
-    if(process.platform === 'win32') scriptPath = "download-ggml-model.cmd";
+    if (process.platform === 'win32') scriptPath = "download-ggml-model.cmd";
 
     shell.exec(`${scriptPath} ${modelName}`);
 
